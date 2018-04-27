@@ -17,18 +17,22 @@ class ApplicationWindow(QObject):
     display_QML_from_string_signal= pyqtSignal(object)
     update_QML_from_string_signal = pyqtSignal(object)
 
+    update_object_signal = pyqtSignal(object, object,object)
+
     #signals to be sent from parser
     show_view = pyqtSignal(object) #takes view
 
 
 
-
+    def update_object(self, obj, key,value):
+        obj.setProperty(key,value)
     def __init__(self):
         QObject.__init__(self)
         self.actual_screen= None
 
         self.show_view.connect(self.__show_view)
         self.display_QML_from_string_signal.connect(self.display_View)
+        self.update_object_signal.connect(self.update_object)
         self.update_QML_from_string_signal.connect(self.update_view)
     def __show_view(self, view:View):
         #convert from object type to a QML
@@ -44,10 +48,28 @@ class ApplicationWindow(QObject):
         self.root.listClick.connect(self.list_click)
         self.root.goBack.connect(self.goBack)
         self.display_main_screen()
+        timeIndicator = self.appView.rootObject().findChild(object, "timeIndicator")
+        class timeThread(QThread):
+            timeIndicator=None
+            dataManager = None
+            updatesignal=None
+            def run(self):
+                while True:
+                    sleep(0.2)
+                    self.dataManager.update_time()
+                    self.updatesignal.emit(self.timeIndicator, "text", self.dataManager.time)
+                    #self.timeIndicator.setProperty("text", self.dataManager.time)
+        timer = timeThread()
+        timer.timeIndicator=timeIndicator
+        timer.dataManager=self.dataManager
+        timer.updatesignal = self.update_object_signal
+        timer.start()
+
 
 
         self.appObject.exec_()
         sys.exit()
+
     """Receives already updated view. Current implementation does not update but rather destroy and rebuild ^^ xd"""
     def update_view(self, properties:dict):
         if self.dataManager.actual_opened_view is not None and self.dataManager.actual_opened_view_internal.name == properties["name"]:
@@ -62,7 +84,8 @@ class ApplicationWindow(QObject):
                     else:
                         print("no object named: ", key)
             else:
-                pass
+                for key, value in properties.items():
+                    self.dataManager.actual_opened_view.setProperty(key,value)
             #self.root.destroyScreen(self.dataManager.actual_opened_view)
             #self.display_View(updated)
 
@@ -81,8 +104,9 @@ class ApplicationWindow(QObject):
                 path = Images.save_image_from_base64(view.properties["image"], "img", "png", "apka")
                 view.properties["backgroundImageSource"] =  Images.add_protocol(path.replace('\\', '/'))
 
-
+            #print(actions_json)
             view.properties["actionsList"] = json.dumps(actions_json)
+            view.properties["objectName"] = '"{0}"'.format(view.name)
             properties = json.dumps(view.properties)
             view.uses_templating=False
             self.dataManager.actual_opened_view_internal = view
@@ -102,6 +126,8 @@ class ApplicationWindow(QObject):
             print("no apps")
     def open_application_callback(self,package):
         print("app!")
+        print(id)
+
         self.dataManager.actual_application = [x for x in self.dataManager.applications if x.package == package][0]
         self.sender_instance.send_data(
         {
@@ -111,16 +137,43 @@ class ApplicationWindow(QObject):
         "package":self.dataManager.actual_application.package,
         "friendlyName":self.dataManager.actual_application.friendlyName
         }})
-    def list_click(self,a):
+    def list_click(self,id,extras):
         if self.dataManager.is_on_app_menu:
             try:
-                self.open_application_callback(self.dataManager.applications[int(a)].package)
+                self.open_application_callback(self.dataManager.applications[int(id)].package)
+                self.dataManager.is_on_app_menu=False
             except IndexError:
                 print("no such app!")
-        print("listClcik")
-        print(a)
+        else:
+            app: Application = self.dataManager.actual_application
+            self.sender_instance.send_data(json.dumps({
+                "type": "listViewClick",
+                "targetPackage": app.package,
+                "friendlyName": app.friendlyName,
+                "data": {
+                    "id": id,
+                    "extras": '"{0}"'.format(extras)
+
+
+                }
+            }))
+        print(id,extras)
     def goBack(self,extra):
-        print("go back")
+        app: Application = self.dataManager.actual_application
+        try:
+            self.sender_instance.send_data(json.dumps({
+                "type": "systemAction",
+                "targetPackage": app.package,
+                "friendlyName": app.friendlyName,
+                "data": {
+                    "actionName": "back",
+                    "screen": self.dataManager.actual_opened_view_internal.name
+
+
+                }
+            }))
+        except AttributeError:
+            pass
     def callback_callback(self,obj,e):
         app:Application = self.dataManager.actual_application
         self.sender_instance.send_data(json.dumps({

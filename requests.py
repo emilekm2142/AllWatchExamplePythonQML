@@ -51,3 +51,12 @@ show_music_player={
         "actions":[{"name":"pause", "callback":"pause"}, {"name":"go", "callback":"do not go"}]
     }
 }
+
+update_music_player = {
+    "type":"updateView",
+    "targePackage":"com.notes.java",
+    "data":{
+        "name":"music",
+        "performer":"twoja stara"
+    }
+}

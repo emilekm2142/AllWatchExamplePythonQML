@@ -43,7 +43,7 @@ return newObject;
   function makeScreenFromAQmlFile(templateName, properties){
     var component = Qt.createComponent(templateName+".qml");
     var props = JSON.parse(properties);
-    props["root"] = root;
+    props["rootref"] = root;
 
     var sprite = component.createObject(root.contentItem, props);
 
@@ -64,7 +64,7 @@ console.log("come");
 }
 signal action(string callbackName, string extras)
 signal openApp(string packageName)
-signal listClick(string extras)
+signal listClick(int id, string extras)
 signal goBack(string extras)
 x:0
 objectName:"root"
@@ -72,11 +72,16 @@ y:topBar.height
 
 
 contentWidth: 160
- contentHeight: childrenRect.height+50
+ contentHeight: childrenRect.height
  height:128
 id:root
 width:160
-
+ ScrollBar.vertical: ScrollBar {
+        parent: parent.parent
+        anchors.top: parent.top
+        anchors.left: parent.right
+        anchors.bottom: parent.bottom
+    }
 }
 Rectangle{
 id:topBar
@@ -107,6 +112,7 @@ id:topBar
            color:"white"
            font.family: oswald.name
         text:"15:31"
+        objectName:"timeIndicator"
         }
 
     }

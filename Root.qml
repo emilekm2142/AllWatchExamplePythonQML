@@ -4,12 +4,12 @@ import QtQuick.Layouts 1.3
 Rectangle{
 
 
-
+height:childrenRect.height
 
 Component.onCompleted:{
 
 
-//var l=createActions(actionsList);
+var l=createActions(actionsList);
 
 console.log("dupa");
 try{
@@ -24,20 +24,25 @@ property var rootref
 property string actionsList
 function createActions(actionsLista){
 
-    console.log(actionsLista)
+
+    if (actionsLista){
+   // console.log(actionsLista);
+    //console.log(actionsList.length);
     actionsLista = JSON.parse(actionsLista);
     var l=[];
     var container = actionsContainer;
-    for (var i =0; i<actionsList.length;i++){
+    for (var i =0; i<actionsLista.length;i++){
         var properties = actionsLista[i];
+        console.log(properties);
 
 
         var component = Qt.createComponent("Action.qml");
 
-        var action = component.createObject(container, {name:properties["name"], callback:properties["callbackName"], callbackSignal: rootref.action});
+        var action = component.createObject(container, {name:properties["name"], callbackName:properties["callbackName"], callbackSignal: rootref.action});
         //l.add(action);
     }
     return l
+    }
 }
 property string backgroundImageSource:""
 

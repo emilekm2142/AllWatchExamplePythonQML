@@ -13,6 +13,7 @@ Rectangle {
     property string name
     property string callbackName
     property string extras:""
+    property int id
     property var callbackSignal
     property string buttonColor:"white"
     property string textColor:"white"
@@ -21,8 +22,8 @@ Rectangle {
     MouseArea{
         anchors.fill: parent
         onClicked: {
-
-            callbackSignal(buttonRoot.extras);
+            //todo this should send extras also ://
+            callbackSignal(Number(buttonRoot.extras), buttonRoot.extras);
         }
     }
 
